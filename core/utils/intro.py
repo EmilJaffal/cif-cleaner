@@ -74,7 +74,7 @@ def prompt_element_intro():
     Process for this option:
     
     [1] Enter the elements of interest separated by a space
-    [2] Choose to filter by exactly matching or containing the elements 
+    [2] Choose to filter/remove by exactly matching or containing the elements 
     ==================================================================
     """
     )

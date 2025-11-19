@@ -28,12 +28,13 @@ def main():
         "7": "Move files based on coordination number",
         "8": "Copy files based on atomic occupancy and mixing",
         "9": "Get file info in the folder",
+        "10": "Remove elements from CIF files (CCDC/CSD support only)",
     }
 
     for key, value in options.items():
         print(f"[{key}] {value}")
 
-    choice = input("Enter your choice (1-9): ")
+    choice = input("Enter your choice (1-10): ")
 
     if choice in options:
         print(f"You have chosen: {options[choice]}\n")
@@ -92,6 +93,9 @@ def main():
     elif choice == "9":
         info.get_cif_folder_info(cif_dir_path)
 
+    # 10. Remove elements from CIF files
+    elif choice == "10":
+        element.remove_elements_from_cif_files(cif_dir_path)
 
 if __name__ == "__main__":
     main()

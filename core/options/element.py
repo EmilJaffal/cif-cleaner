@@ -62,48 +62,40 @@ def remove_elements_from_cif_files(cif_dir_path: str) -> None:
                 
                 # If we're in a loop section
                 if in_loop:
-                    # Check if this line starts a data row (not a header line starting with _)
-                    if stripped_line and not stripped_line.startswith('_') and not stripped_line.startswith('#'):
-                        # This is a data row - check if it contains elements to remove
-                        should_remove = False
-                        parts = stripped_line.split()
-                        
-                        for element in elements_to_remove:
-                            # For atom site data: check if line starts with element symbol or contains element as second field
-                            if len(parts) >= 2 and (parts[0].startswith(element) or parts[1] == element):
-                                should_remove = True
-                                break
-                            
-                            # For geometry data: check if any atom labels contain the element
-                            # Geometry lines typically have format: atom1 atom2 value [symmetry] [flag]
-                            # or: atom1 atom2 atom3 value [symmetry1] [symmetry2] [flag]
-                            if len(parts) >= 2:
-                                # Check all atom label fields (typically first 2-3 fields)
-                                for j in range(min(3, len(parts))):
-                                    atom_label = parts[j]
-                                    # Check if atom label starts with element (e.g., "Cl2" starts with "Cl")
-                                    if atom_label.startswith(element) and (len(atom_label) == len(element) or atom_label[len(element):].isdigit()):
-                                        should_remove = True
-                                        break
-                                if should_remove:
+                    # Check if this is a data row in a loop section
+                    should_remove = False
+                    parts = stripped_line.split()
+
+                    for element in elements_to_remove:
+                        # For atom site data: check if line starts with element symbol or contains element as second field
+                        if len(parts) >= 2 and (re.match(rf'^{re.escape(element)}(\d+|$)', parts[0]) and not re.search(r'[A-Za-z]', parts[0][1:])):
+                            should_remove = True
+                            break
+
+                        # For geometry data: check if any atom labels contain the element
+                        if len(parts) >= 2:
+                            for j in range(min(3, len(parts))):
+                                atom_label = parts[j]
+                                if re.match(rf'^{re.escape(element)}(\d+|$)', atom_label) and not re.search(r'[A-Za-z]', atom_label[1:]):
+                                    should_remove = True
                                     break
-                        
-                        if not should_remove:
-                            filtered_lines.append(line)
-                    else:
-                        # Header line or comment, keep it
+                            if should_remove:
+                                break
+
+                    if not should_remove:
                         filtered_lines.append(line)
-                        # If we hit a blank line or new section, exit loop mode
-                        if not stripped_line or (stripped_line.startswith('_') and not any(x in stripped_line for x in ['_atom_', '_geom_'])):
-                            in_loop = False
-                
+                    else:
+                        # Skip the line if it matches the removal criteria
+                        pass
+
                 # Handle chemical formula lines
                 elif '_chemical_formula_sum' in stripped_line or '_chemical_formula_moiety' in stripped_line:
                     # Update chemical formulas to remove specified elements
                     updated_line = line
                     for element in elements_to_remove:
                         # Remove element and its count (e.g., "Cl6" -> "", "N6" -> "")
-                        pattern = rf'{element}\d*\s*'
+                        # Match complete elements only, ensuring no partial matches
+                        pattern = rf'(?<![A-Za-z]){re.escape(element)}(\d+|\b)(?![A-Za-z])'
                         updated_line = re.sub(pattern, '', updated_line)
                     
                     # Clean up extra spaces and commas
